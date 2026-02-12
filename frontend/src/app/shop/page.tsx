@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import { useAccount, useReadContract, useWriteContract, useWaitForTransactionReceipt } from "wagmi";
 import { parseEther } from "viem";
 import { CONTRACTS, FACTORY_ABI, TIERS } from "@/lib/contracts";
@@ -8,9 +9,11 @@ import { toast } from "sonner";
 export default function Shop() {
   const { address } = useAccount();
   const { writeContract, data: hash, isPending } = useWriteContract();
-  const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({
-    hash,
-    onSuccess: (data) => {
+  const { isLoading: isConfirming, isSuccess, error } = useWaitForTransactionReceipt({ hash });
+
+  // Handle purchase success/error
+  useEffect(() => {
+    if (isSuccess) {
       toast.success("Lighter purchased successfully! 🔥", {
         description: "Check 'My Lighters' to view your new NFT",
         action: {
@@ -18,9 +21,12 @@ export default function Shop() {
           onClick: () => window.location.href = "/my-lighters",
         },
       });
-    },
-    onError: () => toast.error("Failed to purchase lighter"),
-  });
+    }
+  }, [isSuccess]);
+
+  useEffect(() => {
+    if (error) toast.error("Failed to purchase lighter");
+  }, [error]);
 
   const { data: balance } = useReadContract({
     address: "0x0000000000000000000000000000000000000000", // Native ETH

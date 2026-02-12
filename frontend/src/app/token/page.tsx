@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAccount, useReadContract, useWriteContract, useWaitForTransactionReceipt } from "wagmi";
 import { CONTRACTS, TOKEN_ABI } from "@/lib/contracts";
 import { formatEther, parseEther, isAddress } from "viem";
@@ -41,23 +41,33 @@ export default function Token() {
   });
 
   const { writeContract: claimReward, data: claimHash, isPending: claimPending } = useWriteContract();
-  const { isSuccess: claimSuccess } = useWaitForTransactionReceipt({
-    hash: claimHash,
-    onSuccess: () => toast.success("Rewards claimed successfully! 💰"),
-    onError: () => toast.error("Failed to claim rewards"),
-  });
+  const { isSuccess: claimSuccess, error: claimError } = useWaitForTransactionReceipt({ hash: claimHash });
 
   const { writeContract: transferTokens, data: transferHash, isPending: transferPending } = useWriteContract();
-  const { isSuccess: transferSuccess } = useWaitForTransactionReceipt({
-    hash: transferHash,
-    onSuccess: () => {
+  const { isSuccess: transferSuccess, error: transferError } = useWaitForTransactionReceipt({ hash: transferHash });
+
+  // Handle claim success/error
+  useEffect(() => {
+    if (claimSuccess) toast.success("Rewards claimed successfully! 💰");
+  }, [claimSuccess]);
+
+  useEffect(() => {
+    if (claimError) toast.error("Failed to claim rewards");
+  }, [claimError]);
+
+  // Handle transfer success/error
+  useEffect(() => {
+    if (transferSuccess) {
       toast.success("Tokens transferred successfully! 🎁");
       setTransferTo("");
       setTransferAmount("");
       setShowTransfer(false);
-    },
-    onError: () => toast.error("Failed to transfer tokens"),
-  });
+    }
+  }, [transferSuccess]);
+
+  useEffect(() => {
+    if (transferError) toast.error("Failed to transfer tokens");
+  }, [transferError]);
 
   const balanceNum = balance ? Number(formatEther(balance)) : 0;
   const earnedNum = earned ? Number(formatEther(earned)) : 0;

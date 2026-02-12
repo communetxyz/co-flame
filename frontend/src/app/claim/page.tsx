@@ -79,21 +79,31 @@ export default function Claim() {
   });
 
   const { writeContract: claimLighter, data: lHash, isPending: lPending } = useWriteContract();
-  const { isSuccess: lSuccess } = useWaitForTransactionReceipt({
-    hash: lHash,
-    onSuccess: () => {
-      toast.success("Lighter revenue claimed! 💰");
-      setTokenId("");
-    },
-    onError: () => toast.error("Failed to claim lighter revenue"),
-  });
+  const { isSuccess: lSuccess, error: lError } = useWaitForTransactionReceipt({ hash: lHash });
 
   const { writeContract: claimToken, data: tHash, isPending: tPending } = useWriteContract();
-  const { isSuccess: tSuccess } = useWaitForTransactionReceipt({
-    hash: tHash,
-    onSuccess: () => toast.success("Token rewards claimed! 🎉"),
-    onError: () => toast.error("Failed to claim token rewards"),
-  });
+  const { isSuccess: tSuccess, error: tError } = useWaitForTransactionReceipt({ hash: tHash });
+
+  // Handle lighter claim success/error
+  useEffect(() => {
+    if (lSuccess) {
+      toast.success("Lighter revenue claimed! 💰");
+      setTokenId("");
+    }
+  }, [lSuccess]);
+
+  useEffect(() => {
+    if (lError) toast.error("Failed to claim lighter revenue");
+  }, [lError]);
+
+  // Handle token claim success/error
+  useEffect(() => {
+    if (tSuccess) toast.success("Token rewards claimed! 🎉");
+  }, [tSuccess]);
+
+  useEffect(() => {
+    if (tError) toast.error("Failed to claim token rewards");
+  }, [tError]);
 
   const isOwnerOfToken = singleOwner?.toLowerCase() === address?.toLowerCase();
   const tokenEarnedNum = tokenEarned ? Number(formatEther(tokenEarned)) : 0;

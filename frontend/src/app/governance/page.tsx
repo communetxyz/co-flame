@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAccount, useReadContract, useReadContracts, useWriteContract, useWaitForTransactionReceipt } from "wagmi";
 import { CONTRACTS, TOKEN_ABI } from "@/lib/contracts";
 import { formatEther } from "viem";
@@ -37,28 +37,43 @@ export default function Governance() {
   });
 
   const { writeContract: propose, data: pHash, isPending: pPending } = useWriteContract();
-  const { isSuccess: pSuccess } = useWaitForTransactionReceipt({
-    hash: pHash,
-    onSuccess: () => {
-      toast.success("Proposal created successfully! 🗳️");
-      setDesc("");
-    },
-    onError: () => toast.error("Failed to create proposal"),
-  });
+  const { isSuccess: pSuccess, error: pError } = useWaitForTransactionReceipt({ hash: pHash });
 
   const { writeContract: castVote, data: vHash, isPending: vPending } = useWriteContract();
-  const { isSuccess: vSuccess } = useWaitForTransactionReceipt({
-    hash: vHash,
-    onSuccess: () => toast.success("Vote cast successfully! ✅"),
-    onError: () => toast.error("Failed to cast vote"),
-  });
+  const { isSuccess: vSuccess, error: vError } = useWaitForTransactionReceipt({ hash: vHash });
 
   const { writeContract: executeProposal, data: eHash, isPending: ePending } = useWriteContract();
-  const { isSuccess: eSuccess } = useWaitForTransactionReceipt({
-    hash: eHash,
-    onSuccess: () => toast.success("Proposal executed successfully! ⚡"),
-    onError: () => toast.error("Failed to execute proposal"),
-  });
+  const { isSuccess: eSuccess, error: eError } = useWaitForTransactionReceipt({ hash: eHash });
+
+  // Handle proposal creation success/error
+  useEffect(() => {
+    if (pSuccess) {
+      toast.success("Proposal created successfully! 🗳️");
+      setDesc("");
+    }
+  }, [pSuccess]);
+
+  useEffect(() => {
+    if (pError) toast.error("Failed to create proposal");
+  }, [pError]);
+
+  // Handle vote success/error
+  useEffect(() => {
+    if (vSuccess) toast.success("Vote cast successfully! ✅");
+  }, [vSuccess]);
+
+  useEffect(() => {
+    if (vError) toast.error("Failed to cast vote");
+  }, [vError]);
+
+  // Handle execution success/error
+  useEffect(() => {
+    if (eSuccess) toast.success("Proposal executed successfully! ⚡");
+  }, [eSuccess]);
+
+  useEffect(() => {
+    if (eError) toast.error("Failed to execute proposal");
+  }, [eError]);
 
   const balanceNum = balance ? Number(formatEther(balance)) : 0;
   const canPropose = balanceNum >= 1000;

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAccount, useReadContract, useReadContracts, useWriteContract, useWaitForTransactionReceipt } from "wagmi";
 import { CONTRACTS, LIGHTER_ABI, TIERS } from "@/lib/contracts";
 import { isAddress } from "viem";
@@ -44,22 +44,32 @@ export default function MyLighters() {
   });
 
   const { writeContract: claimRevenue, data: claimHash, isPending: claimPending } = useWriteContract();
-  const { isSuccess: claimSuccess } = useWaitForTransactionReceipt({
-    hash: claimHash,
-    onSuccess: () => toast.success("Revenue claimed successfully! 💰"),
-    onError: () => toast.error("Failed to claim revenue"),
-  });
+  const { isSuccess: claimSuccess, error: claimError } = useWaitForTransactionReceipt({ hash: claimHash });
 
   const { writeContract: transferNFT, data: transferHash, isPending: transferPending } = useWriteContract();
-  const { isSuccess: transferSuccess } = useWaitForTransactionReceipt({
-    hash: transferHash,
-    onSuccess: () => {
+  const { isSuccess: transferSuccess, error: transferError } = useWaitForTransactionReceipt({ hash: transferHash });
+
+  // Handle claim success/error
+  useEffect(() => {
+    if (claimSuccess) toast.success("Revenue claimed successfully! 💰");
+  }, [claimSuccess]);
+
+  useEffect(() => {
+    if (claimError) toast.error("Failed to claim revenue");
+  }, [claimError]);
+
+  // Handle transfer success/error
+  useEffect(() => {
+    if (transferSuccess) {
       toast.success("NFT transferred successfully! 🎁");
       setShowTransfer({});
       setTransferTo({});
-    },
-    onError: () => toast.error("Failed to transfer NFT"),
-  });
+    }
+  }, [transferSuccess]);
+
+  useEffect(() => {
+    if (transferError) toast.error("Failed to transfer NFT");
+  }, [transferError]);
 
   function handleClaim(tokenId: bigint) {
     claimRevenue({

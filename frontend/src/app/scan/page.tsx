@@ -1,13 +1,13 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, Suspense } from "react";
 import { useAccount, useReadContract, useWriteContract, useWaitForTransactionReceipt } from "wagmi";
 import { CONTRACTS, LIGHTER_ABI, TIERS } from "@/lib/contracts";
 import { toast } from "sonner";
 import QRCode from "qrcode";
 import { useSearchParams } from "next/navigation";
 
-export default function Scan() {
+function ScanContent() {
   const { address } = useAccount();
   const searchParams = useSearchParams();
   const [tokenId, setTokenId] = useState(searchParams.get("tokenId") || "");
@@ -15,15 +15,20 @@ export default function Scan() {
   const qrRef = useRef<HTMLCanvasElement>(null);
 
   const { writeContract, data: hash, isPending } = useWriteContract();
-  const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({
-    hash,
-    onSuccess: () => {
+  const { isLoading: isConfirming, isSuccess, error } = useWaitForTransactionReceipt({ hash });
+
+  // Handle scan success/error
+  useEffect(() => {
+    if (isSuccess) {
       toast.success("Scan recorded! Revenue share increased! 📈");
       setTokenId("");
       setShowQR(false);
-    },
-    onError: () => toast.error("Failed to record scan"),
-  });
+    }
+  }, [isSuccess]);
+
+  useEffect(() => {
+    if (error) toast.error("Failed to record scan");
+  }, [error]);
 
   // Check if user owns the token
   const { data: owner } = useReadContract({
@@ -213,5 +218,13 @@ export default function Scan() {
         </a>
       </div>
     </div>
+  );
+}
+
+export default function Scan() {
+  return (
+    <Suspense fallback={<div className="text-center text-zinc-400 py-20">Loading...</div>}>
+      <ScanContent />
+    </Suspense>
   );
 }
